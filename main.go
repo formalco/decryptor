@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"os"
 
+	_ "decryptor/provider/awskms"
+	_ "decryptor/provider/gcpkms"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/rs/zerolog/log"
-
-	_ "decryptor/provider/awskms"
-	_ "decryptor/provider/gcpkms"
 )
 
 type Response struct {

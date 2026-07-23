@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"os"
 
+	"decryptor/provider"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kms"
-
-	"decryptor/provider"
 )
 
 const scheme = "aws-kms"

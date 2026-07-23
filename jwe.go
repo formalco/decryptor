@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	jose "github.com/go-jose/go-jose/v4"
-
 	"decryptor/provider"
+
+	jose "github.com/go-jose/go-jose/v4"
 )
 
 // Logs are sealed as compact JWEs: a fresh AES-256-GCM content key (CEK) wrapped

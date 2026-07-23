@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"sync"
 
+	"decryptor/provider"
+
 	kms "cloud.google.com/go/kms/apiv1"
 	"cloud.google.com/go/kms/apiv1/kmspb"
-
-	"decryptor/provider"
 )
 
 const scheme = "gcp-kms"
