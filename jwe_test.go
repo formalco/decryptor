@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"errors"
 	"strings"
 	"testing"
 
@@ -92,6 +93,32 @@ func TestDecryptJWEEmptyPlaintext(t *testing.T) {
 	}
 	if got != "" {
 		t.Fatalf("got %q, want empty string", got)
+	}
+}
+
+// The KMS's own error must survive go-jose's generic one.
+func TestDecryptJWEReportsUnwrapError(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+
+	jwe := sealJWE(t, "secret", &key.PublicKey, "aws-kms://arn:aws:kms:us-east-1:123456789012:key/abcd")
+	obj, err := parseJWE(jwe)
+	if err != nil {
+		t.Fatalf("parseJWE: %v", err)
+	}
+
+	unwrap := func([]byte) ([]byte, error) {
+		return nil, errors.New("caller is not authorized to perform kms:Decrypt")
+	}
+
+	_, err = decryptWith(obj, unwrap)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "not authorized") {
+		t.Fatalf("want the KMS error, got %v", err)
 	}
 }
 

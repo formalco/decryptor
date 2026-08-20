@@ -8,6 +8,7 @@ import (
 	"os"
 
 	_ "decryptor/provider/awskms"
+	_ "decryptor/provider/azurekv"
 	_ "decryptor/provider/gcpkms"
 
 	"github.com/aws/aws-lambda-go/events"
