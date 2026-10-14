@@ -8,7 +8,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys v1.5.0
 	github.com/aws/aws-lambda-go v1.41.0
 	github.com/aws/aws-sdk-go v1.55.7
-	github.com/go-jose/go-jose/v4 v4.1.5-0.20260402171449-d50302948f33
+	github.com/go-jose/go-jose/v4 v4.1.5
 	github.com/rs/zerolog v1.31.0
 )
 
