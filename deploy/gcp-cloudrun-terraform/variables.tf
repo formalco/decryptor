@@ -10,7 +10,7 @@ variable "region" {
 }
 
 variable "image" {
-  description = "Container image for the decryptor (build with gcp/Dockerfile and push to Artifact Registry)."
+  description = "Container image for the decryptor (build with the repo-root Dockerfile and push to Artifact Registry)."
   type        = string
 }
 
