@@ -1,95 +1,84 @@
 # AWS Lambda via Terraform
 
-This directory contains Terraform configurations to deploy the decryptor function with an API Gateway in a private subnet within your VPC.
+A Terraform module that runs the decryptor as a Lambda function behind API Gateway. Use its `decryptor_uri` output as the `decryptor_uri` on a `formal_encryption_key`.
 
-This deployment will put the API Gateway and Lambda in a private subnet. We recommend accessing the resulting API Gateway decryptor URI via a VPN.
+[`examples/aws-kms`](examples/aws-kms) creates an asymmetric KMS key, deploys this module, and registers the key with Formal.
 
-## Prerequisites
+## Usage
 
-- [Terraform](https://www.terraform.io/downloads.html)
-- Go (to build the Lambda binary)
-- An AWS VPC with a private subnet.
-- AWS Credentials with the ability to deploy API Gateways, Lambdas, EC2 instances and the associated networking.
+```hcl
+module "decryptor" {
+  source = "git::https://github.com/formalco/decryptor.git//deploy/aws-lambda-terraform?ref=<release tag>"
 
-## Files
+  kms_key_arns            = [aws_kms_key.formal_logs.arn]
+  vpc_id                  = "vpc-xxxxxxxxx"
+  vpc_endpoint_subnet_ids = ["subnet-xxxxxxxxx", "subnet-yyyyyyyyy"]
+}
 
-- `main.tf` - Main Terraform configuration (Lambda, API Gateway, IAM roles)
-- `variables.tf` - Variable definitions
-- `outputs.tf` - Output definitions
-- `terraform.tfvars.example` - Example variables file
-
-## Deployment steps
-
-1. First, copy the example variables and update them.
-
-```bash
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your preferred values
+resource "formal_encryption_key" "logs" {
+  key_provider   = "aws-kms"
+  key_id         = aws_kms_key.formal_logs.arn
+  public_key_pem = data.aws_kms_public_key.formal_logs.public_key_pem
+  decryptor_uri  = module.decryptor.decryptor_uri
+}
 ```
 
-2. From the repo root, build and zip the Lambda binary, then apply:
+## Image
 
-```bash
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bootstrap .
-zip bootstrap.zip bootstrap
-cd deploy/aws-lambda-terraform
-terraform init && terraform apply
-```
-## Resources Created
-
-- **Lambda Function**: `decryptor` (or custom name) deployed in private subnets
-- **IAM Role**: `decryptor-role` with KMS decrypt and VPC access permissions
-- **API Gateway**: Private REST API with POST /decrypt endpoint
-- **VPC Endpoint**: Interface endpoint for API Gateway execute-api service
-- **Security Groups**:
-  - Lambda security group with egress to all
-  - API Gateway VPC endpoint security group with ingress on port 443 from VPC CIDR
-- **CORS Configuration**: Configured for https://app.formal.ai
-- **CloudWatch Log Group**: For Lambda function logs
-
-## VPC Configuration
-
-This deployment creates a **private API Gateway** accessible only from within the VPC. The Lambda function runs in private subnets and connects to API Gateway through a VPC endpoint.
-
-### VPC Requirements
-
-- **VPC ID**: An existing VPC where resources will be deployed
-- **Private Subnets**: At least 2 private subnets (recommended for high availability)
-  - Subnets should have routes to a NAT Gateway if the Lambda needs internet access
-  - Subnets should be in different Availability Zones for resilience
-- **VPC Endpoints**: The terraform configuration automatically creates the required API Gateway execute-api endpoint
-
-### Network Architecture
+By default the function runs Formal's published image:
 
 ```
-Client (within VPC) → VPC Endpoint (execute-api) → Private API Gateway → Lambda (in private subnet)
+654654333078.dkr.ecr.<region>.amazonaws.com/formalco-prod-decryptor:<image_tag>-<arm64|amd64>
 ```
 
-The API Gateway is not accessible from the public internet. We recommend requiring access through a VPN so that users can access the API Gateway from their browsers.
+The image is replicated to `eu-west-1`, `us-east-1`, `us-east-2`, `us-west-1`, `us-west-2`, and `ap-southeast-1`. The module uses the replica in the provider's region.
 
-## Variables
+Pulling it requires your AWS account or organization to be allowlisted by Formal. The identity running Terraform also needs `ecr:BatchGetImage` and `ecr:GetDownloadUrlForLayer` on the repository.
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `aws_region` | AWS region to deploy resources | `us-east-1` | No |
-| `function_name` | Name of the Lambda function | `decryptor` | No |
-| `stage_name` | API Gateway stage name | `prod` | No |
-| `kms_key_arn` | ARN for KMS key we're using to decrypt | - | Yes |
-| `vpc_id` | VPC ID where Lambda and API Gateway will be deployed | - | Yes |
-| `private_subnet_ids` | List of private subnet IDs (recommend 2+) | - | Yes |
-| `log_retention_days` | CloudWatch log retention in days | `14` | No |
+To run your own build, build the repository-root `Dockerfile` for one architecture with `--provenance=false`. Push it to ECR and set `image_uri`. Lambda only accepts single-architecture images.
+
+## Network access
+
+There is no authentication between the browser and the decryptor, so restrict who can reach it.
+
+- `endpoint_type = "PRIVATE"` (default) serves the API only through execute-api VPC endpoints. Users reach it over a VPN. The module creates an endpoint in `vpc_id`, or reuses `vpc_endpoint_ids`. A VPC can have only one execute-api endpoint with private DNS, so reuse it if your VPC already has one.
+- `endpoint_type = "REGIONAL"` serves the API publicly. Set `allowed_source_ips` to your VPN or office egress IPs to limit callers.
+
+The function itself runs outside your VPC unless you set `lambda_subnet_ids`. Attached subnets need a route to KMS, through a NAT gateway or a KMS VPC endpoint.
+
+## Key rotation
+
+Each encrypted field records the KMS key that sealed it. When you replace a key, add the new ARN to `kms_key_arns` and keep the old one until its fields no longer need decrypting.
+
+## Inputs
+
+| Name | Description | Default |
+|------|-------------|---------|
+| `kms_key_arns` | KMS keys the decryptor may decrypt with | required |
+| `name` | Function name; prefixes the role, security groups, and API | `formal-decryptor` |
+| `image_tag` | Decryptor release to run | `v0.1.1` |
+| `image_uri` | Image to run instead of Formal's ECR image | `null` |
+| `architecture` | `arm64` or `x86_64` | `arm64` |
+| `endpoint_type` | `PRIVATE` or `REGIONAL` | `PRIVATE` |
+| `vpc_endpoint_ids` | Existing execute-api endpoints for a `PRIVATE` API | `[]` |
+| `vpc_id` | VPC for the created endpoint and for `lambda_subnet_ids` | `null` |
+| `vpc_endpoint_subnet_ids` | Subnets for the created endpoint | `[]` |
+| `vpc_endpoint_ingress_cidrs` | CIDRs allowed to reach the created endpoint | VPC CIDR |
+| `allowed_source_ips` | Callers allowed to reach a `REGIONAL` API | any |
+| `lambda_subnet_ids` | Subnets to attach the function to | none |
+| `stage_name` | API Gateway stage name | `prod` |
+| `log_retention_days` | CloudWatch log retention | `14` |
+| `tags` | Tags for every resource | `{}` |
 
 ## Outputs
 
-| Output | Description |
-|--------|-------------|
-| `api_gateway_url` | Full URL of the API endpoint including /decrypt path |
-| `api_gateway_id` | API Gateway REST API ID |
+| Name | Description |
+|------|-------------|
+| `decryptor_uri` | Endpoint to set as `decryptor_uri` |
+| `rest_api_id` | API Gateway REST API ID |
+| `vpc_endpoint_ids` | execute-api endpoints serving a `PRIVATE` API |
 | `lambda_function_name` | Lambda function name |
 | `lambda_function_arn` | Lambda function ARN |
-| `lambda_role_arn` | Lambda IAM role ARN |
-| `cloudwatch_log_group_name` | CloudWatch Log Group name |
-| `vpc_endpoint_id` | VPC Endpoint ID for API Gateway |
-| `vpc_endpoint_dns_entries` | DNS entries for the VPC endpoint |
-| `vpc_endpoint_private_ips` | Private IP addresses of the VPC endpoint|
-| `access_instructions` | Instructions for accessing the private API |
+| `lambda_role_arn` | Lambda execution role ARN |
+| `image_uri` | Image the function runs |
+| `cloudwatch_log_group_name` | Lambda log group |
