@@ -36,6 +36,8 @@ terraform apply \
   -var container_registry_id=/subscriptions/<s>/resourceGroups/<rg>/providers/Microsoft.ContainerRegistry/registries/<registry>
 ```
 
+For a self-hosted control plane, also pass `-var formal_control_plane_url=https://<your console host>`. It defaults to `https://app.formal.ai`.
+
 `terraform output decryptor_uri` is the endpoint to set as the encryption key's decryptor URI.
 
 The app runs as a user-assigned managed identity granted `Key Vault Crypto User` on that one key only. Omit `container_registry_id` if the image is publicly pullable.

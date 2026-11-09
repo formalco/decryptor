@@ -30,6 +30,8 @@ terraform apply \
   -var kms_crypto_key_id=projects/<p>/locations/<l>/keyRings/<r>/cryptoKeys/<k>
 ```
 
+For a self-hosted control plane, also pass `-var formal_control_plane_url=https://<your console host>`. It defaults to `https://app.formal.ai`.
+
 `terraform output decryptor_uri` is the endpoint to set as the encryption key's decryptor URI.
 
 The service account is granted `roles/cloudkms.cryptoKeyDecrypter` on that one key only. The service is publicly invocable by default because the browser calls it directly; restrict ingress or front it with IAP/a VPN to limit exposure.

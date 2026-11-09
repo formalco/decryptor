@@ -13,6 +13,7 @@ Deploys the decryptor as a Lambda behind a private REST API Gateway, reachable o
   - `VPC_ENDPOINT_ID` — the `execute-api` VPC endpoint the API is locked to
   - `SECURITY_GROUP_ID` — security group for the Lambda
   - `SUBNET_ID_1`, `SUBNET_ID_2` — private subnets for the Lambda
+  - `FORMAL_CONTROL_PLANE_URL` (optional) — the Formal Console origin allowed to call the decryptor, defaulting to `https://app.formal.ai`; set it to your console's origin, e.g. `https://formal.example.com`, for a self-hosted control plane
 
 ## Deployment steps
 

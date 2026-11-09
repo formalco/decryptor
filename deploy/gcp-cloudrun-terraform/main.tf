@@ -34,6 +34,10 @@ resource "google_cloud_run_v2_service" "decryptor" {
       ports {
         container_port = 8080
       }
+      env {
+        name  = "FORMAL_CONTROL_PLANE_URL"
+        value = var.formal_control_plane_url
+      }
     }
   }
 }

@@ -97,6 +97,11 @@ resource "azurerm_container_app" "decryptor" {
         name  = "AZURE_CLIENT_ID"
         value = azurerm_user_assigned_identity.decryptor.client_id
       }
+
+      env {
+        name  = "FORMAL_CONTROL_PLANE_URL"
+        value = var.formal_control_plane_url
+      }
     }
   }
 

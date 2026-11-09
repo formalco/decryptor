@@ -46,6 +46,10 @@ There is no authentication between the browser and the decryptor, so restrict wh
 
 The function itself runs outside your VPC unless you set `lambda_subnet_ids`. Attached subnets need a route to KMS, through a NAT gateway or a KMS VPC endpoint.
 
+## Self-hosted console
+
+The browser only accepts decryptor responses for the Formal Console origin in `formal_control_plane_url`. It defaults to `https://app.formal.ai`. If you run a self-hosted control plane, set it to your console's origin, e.g. `formal_control_plane_url = "https://formal.example.com"`.
+
 ## Key rotation
 
 Each encrypted field records the KMS key that sealed it. When you replace a key, add the new ARN to `kms_key_arns` and keep the old one until its fields no longer need decrypting.
@@ -66,6 +70,7 @@ Each encrypted field records the KMS key that sealed it. When you replace a key,
 | `vpc_endpoint_ingress_cidrs` | CIDRs allowed to reach the created endpoint | VPC CIDR |
 | `allowed_source_ips` | Callers allowed to reach a `REGIONAL` API | any |
 | `lambda_subnet_ids` | Subnets to attach the function to | none |
+| `formal_control_plane_url` | Formal Console origin allowed to call the decryptor | `https://app.formal.ai` |
 | `stage_name` | API Gateway stage name | `prod` |
 | `log_retention_days` | CloudWatch log retention | `14` |
 | `tags` | Tags for every resource | `{}` |

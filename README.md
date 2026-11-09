@@ -24,6 +24,13 @@ The decryptor holds no private key material; only the KMS unwrap can recover the
 
 The decryptor is one binary. It can run anywhere you can run a container.
 
+### Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `FORMAL_CONTROL_PLANE_URL` | Formal Console origin the browser may call the decryptor from. Set it to your console's origin, e.g. `https://formal.example.com`, for a self-hosted control plane. Must be a lowercase `https` origin with no path or trailing slash; the decryptor refuses to start otherwise. | `https://app.formal.ai` |
+| `PORT` | Listen port when running as an HTTP server | `8080` |
+
 The root `Dockerfile` builds an image that runs as a standalone HTTP server or a Lambda function.
 
 The `deploy/` directory has a few examples:

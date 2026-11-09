@@ -1,10 +1,18 @@
 service: decryptor
 frameworkVersion: '4'
 
+custom:
+  # Formal Console origin allowed to call the decryptor from the browser. The
+  # function and the API Gateway preflight must use the same value.
+  formalControlPlaneUrl: ${env:FORMAL_CONTROL_PLANE_URL, 'https://app.formal.ai'}
+
 provider:
   name: aws
   runtime: provided.al2
   architecture: arm64
+
+  environment:
+    FORMAL_CONTROL_PLANE_URL: ${self:custom.formalControlPlaneUrl}
 
   # Private REST API: reachable only through the execute-api VPC endpoint below,
   # never the public internet. The resource policy denies everything else.
@@ -51,4 +59,4 @@ functions:
           path: /decrypt
           method: post
           cors:
-            origin: https://app.formal.ai
+            origin: ${self:custom.formalControlPlaneUrl}

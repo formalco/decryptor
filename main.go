@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 
 	_ "decryptor/provider/awskms"
 	_ "decryptor/provider/azurekv"
@@ -20,10 +23,39 @@ type Response struct {
 	Message string `json:"message"`
 }
 
-var corsHeaders = map[string]string{
-	"Access-Control-Allow-Origin":  "https://app.formal.ai",
-	"Access-Control-Allow-Methods": "OPTIONS,POST",
+const defaultCORSAllowedOrigin = "https://app.formal.ai"
+
+// The browser compares Access-Control-Allow-Origin to its Origin header byte for
+// byte, so the configured value must be a bare https origin with no path.
+func parseCORSAllowedOrigin(raw string) (string, error) {
+	if raw == "" {
+		return defaultCORSAllowedOrigin, nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", fmt.Errorf("FORMAL_CONTROL_PLANE_URL %q is not a valid URL: %w", raw, err)
+	}
+	if u.Scheme != "https" || u.Host == "" || u.Hostname() == "" {
+		return "", fmt.Errorf("FORMAL_CONTROL_PLANE_URL %q must be an absolute https origin, e.g. https://console.example.com", raw)
+	}
+	if u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.ForceQuery || u.OmitHost {
+		return "", fmt.Errorf("FORMAL_CONTROL_PLANE_URL %q must be an origin only, with no credentials, path, trailing slash, query, or fragment", raw)
+	}
+	origin := u.Scheme + "://" + u.Host
+	if origin != raw || strings.ToLower(raw) != raw || u.Port() == "443" {
+		return "", fmt.Errorf("FORMAL_CONTROL_PLANE_URL %q must be written exactly as the browser sends it (%q)", raw, origin)
+	}
+	return origin, nil
 }
+
+func newCORSHeaders(origin string) map[string]string {
+	return map[string]string{
+		"Access-Control-Allow-Origin":  origin,
+		"Access-Control-Allow-Methods": "OPTIONS,POST",
+	}
+}
+
+var corsHeaders map[string]string
 
 func decrypt(ctx context.Context, body string) (plaintext string, status int, errBody string) {
 	obj, err := parseJWE(body)
@@ -82,6 +114,13 @@ func httpHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	origin, err := parseCORSAllowedOrigin(os.Getenv("FORMAL_CONTROL_PLANE_URL"))
+	if err != nil {
+		log.Fatal().Err(err).Msg("invalid CORS configuration")
+	}
+	corsHeaders = newCORSHeaders(origin)
+	log.Info().Str("origin", origin).Msg("CORS allowed origin")
+
 	if os.Getenv("AWS_LAMBDA_RUNTIME_API") != "" {
 		lambda.Start(lambdaHandler)
 		return

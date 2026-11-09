@@ -52,3 +52,14 @@ variable "log_retention_days" {
   type        = number
   default     = 30
 }
+
+variable "formal_control_plane_url" {
+  description = "Origin of the Formal Console that calls the decryptor from the browser. Set it to your self-hosted console's origin, e.g. https://formal.example.com."
+  type        = string
+  default     = "https://app.formal.ai"
+
+  validation {
+    condition     = can(regex("^https://[a-z0-9.-]+(:[0-9]+)?$", var.formal_control_plane_url))
+    error_message = "formal_control_plane_url must be a lowercase https origin with no path or trailing slash, e.g. https://formal.example.com."
+  }
+}

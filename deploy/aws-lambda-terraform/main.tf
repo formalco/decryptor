@@ -7,9 +7,6 @@ locals {
   image_arch = var.architecture == "arm64" ? "arm64" : "amd64"
   image_uri  = coalesce(var.image_uri, "654654333078.dkr.ecr.${local.region}.amazonaws.com/formalco-prod-decryptor:${var.image_tag}-${local.image_arch}")
 
-  # The decryptor binary hardcodes this origin on its POST responses, so the preflight must match it.
-  cors_origin = "https://app.formal.ai"
-
   private              = var.endpoint_type == "PRIVATE"
   create_vpc_endpoint  = local.private && length(var.vpc_endpoint_ids) == 0
   vpc_endpoint_ids     = local.create_vpc_endpoint ? aws_vpc_endpoint.execute_api[*].id : var.vpc_endpoint_ids
@@ -117,6 +114,13 @@ resource "aws_lambda_function" "decryptor" {
   architectures = [var.architecture]
   timeout       = 10
   tags          = var.tags
+
+  # The function sets this origin on its POST responses; the OPTIONS preflight below uses the same value.
+  environment {
+    variables = {
+      FORMAL_CONTROL_PLANE_URL = var.formal_control_plane_url
+    }
+  }
 
   dynamic "vpc_config" {
     for_each = local.lambda_in_vpc ? [1] : []
@@ -261,7 +265,7 @@ resource "aws_api_gateway_integration_response" "options" {
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type'"
     "method.response.header.Access-Control-Allow-Methods" = "'OPTIONS,POST'"
-    "method.response.header.Access-Control-Allow-Origin"  = "'${local.cors_origin}'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'${var.formal_control_plane_url}'"
   }
 
   depends_on = [aws_api_gateway_integration.options]
@@ -270,10 +274,12 @@ resource "aws_api_gateway_integration_response" "options" {
 resource "aws_api_gateway_deployment" "decryptor" {
   rest_api_id = aws_api_gateway_rest_api.decryptor.id
 
-  # Resource policy changes only take effect once the API is redeployed.
+  # Policy and CORS header changes update resources in place (same IDs) and
+  # only take effect once the API is redeployed.
   triggers = {
     redeployment = sha1(jsonencode([
       aws_api_gateway_rest_api.decryptor.policy,
+      aws_api_gateway_integration_response.options.response_parameters,
       aws_api_gateway_resource.decrypt.id,
       aws_api_gateway_method.post.id,
       aws_api_gateway_integration.post.id,
