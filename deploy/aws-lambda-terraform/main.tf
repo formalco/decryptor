@@ -118,7 +118,8 @@ resource "aws_lambda_function" "decryptor" {
   # The function sets this origin on its POST responses; the OPTIONS preflight below uses the same value.
   environment {
     variables = {
-      FORMAL_CONTROL_PLANE_URL = var.formal_control_plane_url
+      FORMAL_CONTROL_PLANE_URL  = var.formal_control_plane_url
+      DECRYPTOR_PASSWORD_SHA256 = var.decryptor_password_sha256
     }
   }
 
@@ -263,7 +264,7 @@ resource "aws_api_gateway_integration_response" "options" {
   status_code = aws_api_gateway_method_response.options.status_code
 
   response_parameters = {
-    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type'"
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Decryptor-Password'"
     "method.response.header.Access-Control-Allow-Methods" = "'OPTIONS,POST'"
     "method.response.header.Access-Control-Allow-Origin"  = "'${var.formal_control_plane_url}'"
   }

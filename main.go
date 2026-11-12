@@ -52,12 +52,17 @@ func newCORSHeaders(origin string) map[string]string {
 	return map[string]string{
 		"Access-Control-Allow-Origin":  origin,
 		"Access-Control-Allow-Methods": "OPTIONS,POST",
+		"Access-Control-Allow-Headers": "Content-Type," + passwordHeader,
 	}
 }
 
 var corsHeaders map[string]string
 
-func decrypt(ctx context.Context, body string) (plaintext string, status int, errBody string) {
+func decrypt(ctx context.Context, headers http.Header, body string) (plaintext string, status int, errBody string) {
+	if !authorized(decryptorPasswordHash, headers.Get(passwordHeader)) {
+		log.Warn().Msg("rejected decrypt request with a missing or incorrect password")
+		return "", http.StatusUnauthorized, "missing or incorrect decryptor password"
+	}
 	obj, err := parseJWE(body)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to parse JWE from request body")
@@ -72,7 +77,12 @@ func decrypt(ctx context.Context, body string) (plaintext string, status int, er
 }
 
 func lambdaHandler(ctx context.Context, event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	plaintext, status, errBody := decrypt(ctx, event.Body)
+	// API Gateway keeps the client's header casing; Add canonicalizes it for Get.
+	headers := http.Header{}
+	for k, v := range event.Headers {
+		headers.Add(k, v)
+	}
+	plaintext, status, errBody := decrypt(ctx, headers, event.Body)
 	if status != http.StatusOK {
 		return events.APIGatewayProxyResponse{StatusCode: status, Body: errBody, Headers: corsHeaders}, nil
 	}
@@ -100,7 +110,7 @@ func httpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	plaintext, status, errBody := decrypt(r.Context(), string(body))
+	plaintext, status, errBody := decrypt(r.Context(), r.Header, string(body))
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 		_, _ = w.Write([]byte(errBody))
@@ -120,6 +130,13 @@ func main() {
 	}
 	corsHeaders = newCORSHeaders(origin)
 	log.Info().Str("origin", origin).Msg("CORS allowed origin")
+	decryptorPasswordHash, err = parsePasswordHash(os.Getenv("DECRYPTOR_PASSWORD_SHA256"))
+	if err != nil {
+		log.Fatal().Err(err).Msg("invalid decryptor password configuration")
+	}
+	if len(decryptorPasswordHash) == 0 {
+		log.Warn().Msg("DECRYPTOR_PASSWORD_SHA256 is not set; /decrypt accepts unauthenticated requests")
+	}
 
 	if os.Getenv("AWS_LAMBDA_RUNTIME_API") != "" {
 		lambda.Start(lambdaHandler)

@@ -14,6 +14,7 @@ Deploys the decryptor as a Lambda behind a private REST API Gateway, reachable o
   - `SECURITY_GROUP_ID` — security group for the Lambda
   - `SUBNET_ID_1`, `SUBNET_ID_2` — private subnets for the Lambda
   - `FORMAL_CONTROL_PLANE_URL` (optional) — the Formal Console origin allowed to call the decryptor, defaulting to `https://app.formal.ai`; set it to your console's origin, e.g. `https://formal.example.com`, for a self-hosted control plane
+  - `DECRYPTOR_PASSWORD_SHA256` (optional) — hex SHA-256 of the password users enter in the Formal Console to decrypt (`printf %s 'your-password' | shasum -a 256`); unset leaves `/decrypt` unauthenticated
 
 ## Deployment steps
 

@@ -20,6 +20,16 @@ For each request the decryptor:
 
 The decryptor holds no private key material; only the KMS unwrap can recover the content key.
 
+## Password
+
+Set `DECRYPTOR_PASSWORD_SHA256` to require a password on every `/decrypt` request. It holds the hex-encoded SHA-256 of the password, not the password itself, so the plaintext never sits in your deployment config:
+
+```sh
+printf %s 'your-password' | shasum -a 256 | cut -d' ' -f1
+```
+
+The decryptor refuses to start if the value isn't a 64-character hex digest. The Formal Console prompts users for it the first time a decrypt is rejected, sends it in the `X-Decryptor-Password` header, and keeps it in memory for the browser session. Requests without the right password get `401`. Without the variable, anyone who can reach the endpoint can decrypt.
+
 ## Deployment
 
 The decryptor is one binary. It can run anywhere you can run a container.
@@ -29,6 +39,7 @@ The decryptor is one binary. It can run anywhere you can run a container.
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `FORMAL_CONTROL_PLANE_URL` | Formal Console origin the browser may call the decryptor from. Set it to your console's origin, e.g. `https://formal.example.com`, for a self-hosted control plane. Must be a lowercase `https` origin with no path or trailing slash; the decryptor refuses to start otherwise. | `https://app.formal.ai` |
+| `DECRYPTOR_PASSWORD_SHA256` | Hex SHA-256 of the password every `/decrypt` request must carry in the `X-Decryptor-Password` header; see [Password](#password). Unset leaves the endpoint unauthenticated. | none |
 | `PORT` | Listen port when running as an HTTP server | `8080` |
 
 The root `Dockerfile` builds an image that runs as a standalone HTTP server or a Lambda function.

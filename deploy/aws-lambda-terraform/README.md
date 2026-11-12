@@ -71,6 +71,7 @@ Each encrypted field records the KMS key that sealed it. When you replace a key,
 | `allowed_source_ips` | Callers allowed to reach a `REGIONAL` API | any |
 | `lambda_subnet_ids` | Subnets to attach the function to | none |
 | `formal_control_plane_url` | Formal Console origin allowed to call the decryptor | `https://app.formal.ai` |
+| `decryptor_password_sha256` | Hex SHA-256 of the password Console users enter to decrypt (sensitive) | none |
 | `stage_name` | API Gateway stage name | `prod` |
 | `log_retention_days` | CloudWatch log retention | `14` |
 | `tags` | Tags for every resource | `{}` |

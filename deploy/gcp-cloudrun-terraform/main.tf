@@ -38,6 +38,10 @@ resource "google_cloud_run_v2_service" "decryptor" {
         name  = "FORMAL_CONTROL_PLANE_URL"
         value = var.formal_control_plane_url
       }
+      env {
+        name  = "DECRYPTOR_PASSWORD_SHA256"
+        value = var.decryptor_password_sha256
+      }
     }
   }
 }

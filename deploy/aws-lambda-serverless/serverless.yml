@@ -13,6 +13,7 @@ provider:
 
   environment:
     FORMAL_CONTROL_PLANE_URL: ${self:custom.formalControlPlaneUrl}
+    DECRYPTOR_PASSWORD_SHA256: ${env:DECRYPTOR_PASSWORD_SHA256, ''}
 
   # Private REST API: reachable only through the execute-api VPC endpoint below,
   # never the public internet. The resource policy denies everything else.
@@ -60,3 +61,6 @@ functions:
           method: post
           cors:
             origin: ${self:custom.formalControlPlaneUrl}
+            headers:
+              - Content-Type
+              - X-Decryptor-Password
