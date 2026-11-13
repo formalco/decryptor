@@ -60,7 +60,7 @@ Each encrypted field records the KMS key that sealed it. When you replace a key,
 |------|-------------|---------|
 | `kms_key_arns` | KMS keys the decryptor may decrypt with | required |
 | `name` | Function name; prefixes the role, security groups, and API | `formal-decryptor` |
-| `image_tag` | Decryptor release to run | `v0.1.1` |
+| `image_tag` | Decryptor release to run | `v0.2.0` |
 | `image_uri` | Image to run instead of Formal's ECR image | `null` |
 | `architecture` | `arm64` or `x86_64` | `arm64` |
 | `endpoint_type` | `PRIVATE` or `REGIONAL` | `PRIVATE` |

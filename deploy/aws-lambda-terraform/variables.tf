@@ -15,9 +15,9 @@ variable "kms_key_arns" {
 }
 
 variable "image_tag" {
-  description = "Decryptor release to run, e.g. v0.1.1. Ignored when image_uri is set."
+  description = "Decryptor release to run, e.g. v0.2.0. Ignored when image_uri is set."
   type        = string
-  default     = "v0.1.1"
+  default     = "v0.2.0"
 }
 
 variable "image_uri" {
