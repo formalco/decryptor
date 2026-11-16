@@ -1,10 +1,11 @@
 package azurekv
 
 import (
-	"context"
 	"testing"
 
 	"decryptor/provider"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseKeyURI(t *testing.T) {
@@ -32,13 +33,8 @@ func TestParseKeyURI(t *testing.T) {
 		},
 	} {
 		vault, name, version, err := parseKeyURI(tc.keyID)
-		if err != nil {
-			t.Fatalf("parseKeyURI(%q): %v", tc.keyID, err)
-		}
-		if vault != tc.vault || name != tc.name || version != tc.version {
-			t.Fatalf("parseKeyURI(%q) = %q, %q, %q; want %q, %q, %q",
-				tc.keyID, vault, name, version, tc.vault, tc.name, tc.version)
-		}
+		require.NoError(t, err, tc.keyID)
+		require.Equal(t, []string{tc.vault, tc.name, tc.version}, []string{vault, name, version}, tc.keyID)
 	}
 }
 
@@ -55,24 +51,18 @@ func TestParseKeyURIRejectsMalformed(t *testing.T) {
 		"https://attacker.example/keys/mykey",
 		"https://vault.azure.net/keys/mykey",
 	} {
-		if _, _, _, err := parseKeyURI(keyID); err == nil {
-			t.Fatalf("expected error for %q", keyID)
-		}
+		_, _, _, err := parseKeyURI(keyID)
+		require.Error(t, err, keyID)
 	}
 }
 
 func TestUnwrapperRejectsMalformedKeyID(t *testing.T) {
-	if _, err := (azureKV{}).Unwrapper(context.Background(), "not-a-uri"); err == nil {
-		t.Fatal("expected error for malformed key ID")
-	}
+	_, err := (azureKV{}).Unwrapper(t.Context(), "not-a-uri")
+	require.Error(t, err)
 }
 
 func TestResolveRegistersScheme(t *testing.T) {
-	unwrap, err := provider.Resolve(context.Background(), "azure-key-vault://https://myvault.vault.azure.net/keys/mykey")
-	if err != nil {
-		t.Fatalf("Resolve: %v", err)
-	}
-	if unwrap == nil {
-		t.Fatal("expected unwrap func")
-	}
+	unwrap, err := provider.Resolve(t.Context(), "azure-key-vault://https://myvault.vault.azure.net/keys/mykey")
+	require.NoError(t, err)
+	require.NotNil(t, unwrap)
 }

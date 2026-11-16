@@ -10,6 +10,7 @@ require (
 	github.com/aws/aws-sdk-go v1.55.7
 	github.com/go-jose/go-jose/v4 v4.1.5
 	github.com/rs/zerolog v1.31.0
+	github.com/stretchr/testify v1.12.1
 )
 
 require (
@@ -43,6 +44,7 @@ require (
 	go.opentelemetry.io/otel v1.42.0 // indirect
 	go.opentelemetry.io/otel/metric v1.42.0 // indirect
 	go.opentelemetry.io/otel/trace v1.42.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.51.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect

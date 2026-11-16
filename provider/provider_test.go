@@ -3,23 +3,18 @@ package provider
 import (
 	"context"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestRegisterAndResolve(t *testing.T) {
-	want := []byte("cek")
-	Register("test-scheme", stubProvider{key: want})
+	Register("test-scheme", stubProvider{key: []byte("cek")})
 
-	unwrap, err := Resolve(context.Background(), "test-scheme://some-key-id")
-	if err != nil {
-		t.Fatalf("Resolve: %v", err)
-	}
+	unwrap, err := Resolve(t.Context(), "test-scheme://some-key-id")
+	require.NoError(t, err)
 	got, err := unwrap(nil)
-	if err != nil {
-		t.Fatalf("unwrap: %v", err)
-	}
-	if string(got) != string(want) {
-		t.Fatalf("got %q, want %q", got, want)
-	}
+	require.NoError(t, err)
+	require.Equal(t, []byte("cek"), got)
 }
 
 func TestResolveRejectsUnsupportedScheme(t *testing.T) {

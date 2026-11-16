@@ -54,18 +54,3 @@ The `deploy/` directory has a few examples:
 ## Tests
 
 `go test ./...` covers JWE parsing and decryption with a stubbed KMS unwrap.
-
-An integration test drives the full path (provider registry through to AWS KMS `Decrypt`) against a real KMS. Point it at any KMS reachable through the default AWS credential chain, or at a local [LocalStack](https://www.localstack.cloud) KMS:
-
-```bash
-go test -tags integration -run TestDecryptViaKMS ./...
-```
-
-The endpoint defaults to `http://localhost:4566`; override it with `TEST_KMS_ENDPOINT`.
-
-A second integration test drives the same path through Azure Key Vault. It needs an RSA key the default Azure credential chain may read and decrypt with:
-
-```bash
-TEST_AZURE_VAULT_URL=https://myvault.vault.azure.net TEST_AZURE_KEY_NAME=formal-logs \
-  go test -tags integration -run TestDecryptViaKeyVault ./...
-```

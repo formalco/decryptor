@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestParseCORSAllowedOrigin(t *testing.T) {
 	valid := map[string]string{
@@ -11,13 +15,8 @@ func TestParseCORSAllowedOrigin(t *testing.T) {
 	}
 	for raw, want := range valid {
 		got, err := parseCORSAllowedOrigin(raw)
-		if err != nil {
-			t.Errorf("parseCORSAllowedOrigin(%q) returned error: %v", raw, err)
-			continue
-		}
-		if got != want {
-			t.Errorf("parseCORSAllowedOrigin(%q) = %q, want %q", raw, got, want)
-		}
+		require.NoError(t, err, raw)
+		require.Equal(t, want, got, raw)
 	}
 
 	invalid := []string{
@@ -36,8 +35,7 @@ func TestParseCORSAllowedOrigin(t *testing.T) {
 		" https://app.formal.ai",
 	}
 	for _, raw := range invalid {
-		if got, err := parseCORSAllowedOrigin(raw); err == nil {
-			t.Errorf("parseCORSAllowedOrigin(%q) = %q, want error", raw, got)
-		}
+		_, err := parseCORSAllowedOrigin(raw)
+		require.Error(t, err, raw)
 	}
 }
